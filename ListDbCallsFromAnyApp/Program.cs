@@ -74,6 +74,30 @@ class Program
                     csvData.Add($"Found method call '{methodName}' in file '{projectAndFileName}' at line {lineNumber}");
                 }
             }
+
+            var objectCreations = root.DescendantNodes().OfType<ObjectCreationExpressionSyntax>();
+            foreach (var objectCreation in objectCreations)
+            {
+                var typeSymbol = (SemanticModel)await tree.GetSemanticModelAsync();
+                if (typeSymbol.GetSymbolInfo(objectCreation).Symbol?.ToString() == "System.Data.SqlClient.SqlCommand")
+                {
+                    dbRequestCount++;
+
+                    // Get the line number
+                    var lineSpan = objectCreation.GetLocation().GetLineSpan();
+                    var lineNumber = lineSpan.StartLinePosition.Line + 1; // Lines are 0-indexed
+
+                    // Getting project and file name only
+                    var projectAndFileName = Path.Combine(Path.GetFileName(Path.GetDirectoryName(file)), Path.GetFileName(file));
+
+                    var spArgument = objectCreation.ArgumentList.Arguments.FirstOrDefault(a => a.Expression is LiteralExpressionSyntax);
+                    if (spArgument != null)
+                    {
+                        var storedProcedureName = spArgument.Expression.ToString().Trim('"');
+                        csvData.Add($"Found SqlCommand object creation for stored procedure '{storedProcedureName}' in file '{projectAndFileName}' at line {lineNumber}");
+                    }
+                }
+            }
         }
 
         csvData.Add($"Total Database Requests Found: {dbRequestCount}");
@@ -117,6 +141,30 @@ class Program
                     var projectAndFileName = Path.Combine(Path.GetFileName(Path.GetDirectoryName(file)), Path.GetFileName(file));
 
                     csvData.Add($"Found method call '{methodName}' in file '{projectAndFileName}' at line {lineNumber}");
+                }
+            }
+
+            var objectCreations = root.DescendantNodes().OfType<ObjectCreationExpressionSyntax>();
+            foreach (var objectCreation in objectCreations)
+            {
+                var typeSymbol = (SemanticModel)await tree.GetSemanticModelAsync();
+                if (typeSymbol.GetSymbolInfo(objectCreation).Symbol?.ToString() == "System.Data.SqlClient.SqlCommand")
+                {
+                    sqlCommandCount++;
+
+                    // Get the line number
+                    var lineSpan = objectCreation.GetLocation().GetLineSpan();
+                    var lineNumber = lineSpan.StartLinePosition.Line + 1; // Lines are 0-indexed
+
+                    // Getting project and file name only
+                    var projectAndFileName = Path.Combine(Path.GetFileName(Path.GetDirectoryName(file)), Path.GetFileName(file));
+
+                    var spArgument = objectCreation.ArgumentList.Arguments.FirstOrDefault(a => a.Expression is LiteralExpressionSyntax);
+                    if (spArgument != null)
+                    {
+                        var storedProcedureName = spArgument.Expression.ToString().Trim('"');
+                        csvData.Add($"Found SqlCommand object creation for stored procedure '{storedProcedureName}' in file '{projectAndFileName}' at line {lineNumber}");
+                    }
                 }
             }
         }
